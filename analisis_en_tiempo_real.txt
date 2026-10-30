@@ -1,0 +1,62 @@
+nano analisis_tarea4.py
+python3 analisis_tarea4.py
+
+programa 
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+
+# 1. Crear la sesión de Spark
+spark = SparkSession.builder \
+    .appName("AnalisisMatriculaTarea4") \
+    .getOrCreate()
+
+# 2. Leer el archivo CSV almacenado en HDFS
+ruta = "hdfs://localhost:9000/Tarea4/matricula.csv"
+
+df = spark.read \
+    .option("header", True) \
+    .option("inferSchema", True) \
+    .option("encoding", "UTF-8") \
+    .csv(ruta)
+
+# 3. Mostrar las columnas disponibles
+print("\n========== COLUMNAS DEL ARCHIVO ==========")
+print(df.columns)
+
+# 4. Mostrar la estructura del archivo
+df.printSchema()
+
+# 5. Matrícula por año
+print("\n========== 1. MATRÍCULA POR AÑO ==========")
+
+df.groupBy("a_o") \
+    .agg(F.sum("matriculados_2015").alias("total_matriculas")) \
+    .orderBy("a_o") \
+    .show(100, truncate=False)
+
+# 6. Matrícula por departamento
+print("\n========== 2. MATRÍCULA POR DEPARTAMENTO ==========")
+
+df.groupBy("departamento_de_domicilio_de_la_ies") \
+    .agg(F.sum("matriculados_2015").alias("total_matriculas")) \
+    .orderBy(F.desc("total_matriculas")) \
+    .show(100, truncate=False)
+
+# 7. Matrícula por institución
+print("\n========== 3. MATRÍCULA POR INSTITUCIÓN ==========")
+
+df.groupBy("ies_padre") \
+    .agg(F.sum("matriculados_2015").alias("total_matriculas")) \
+    .orderBy(F.desc("total_matriculas")) \
+    .show(20, truncate=False)
+
+# 8. Matrícula por género
+print("\n========== 4. MATRÍCULA POR GÉNERO ==========")
+
+df.groupBy("id_g_nero") \
+    .agg(F.sum("matriculados_2015").alias("total_matriculas")) \
+    .orderBy(F.desc("total_matriculas")) \
+    .show(100, truncate=False)
+
+# 9. Cerrar la sesión de Spark
+spark.stop()
