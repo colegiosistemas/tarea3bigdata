@@ -1,0 +1,102 @@
+el archivo se llama nano analisis_matriculas.py
+para su ejecucion es: python3 analisis_matriculas.py
+
+from pyspark.sql import SparkSession, functions as F
+
+# ==================================================
+# 1. CREAR LA SESION DE SPARK
+# ==================================================
+
+spark = SparkSession.builder \
+    .appName("AnalisisMatriculas") \
+    .getOrCreate()
+
+spark.sparkContext.setLogLevel("ERROR")
+
+# ==================================================
+# 2. LEER EL ARCHIVO CSV DESDE HDFS
+# ==================================================
+
+ruta = "hdfs://localhost:9000/Tarea4/matricula.csv"
+
+df = spark.read \
+    .option("header", True) \
+    .option("inferSchema", True) \
+    .csv(ruta)
+
+# ==================================================
+# 3. PREPARAR LOS DATOS
+# ==================================================
+
+# Convertir las columnas a tipos apropiados
+df = df.withColumn(
+    "a_o",
+    F.col("a_o").cast("int")
+)
+
+df = df.withColumn(
+    "matriculados_2015",
+    F.col("matriculados_2015").cast("double")
+)
+
+print("\n==========================================")
+print("       ANALISIS DE MATRICULAS")
+print("==========================================")
+
+print("Total de registros:", df.count())
+
+# ==================================================
+# TABLA 1. MATRICULAS POR ANIO
+# ==================================================
+
+print("\n==========================================")
+print("TABLA 1: MATRICULAS POR ANIO")
+print("==========================================")
+
+tabla_anio = df.groupBy("a_o").agg(
+    F.sum("matriculados_2015").alias("Total matriculas")
+).orderBy("a_o")
+
+tabla_anio.show(100, truncate=False)
+
+# ==================================================
+# TABLA 2. MATRICULAS POR PROGRAMA ACADEMICO
+# ==================================================
+
+print("\n==========================================")
+print("TABLA 2: MATRICULAS POR PROGRAMA ACADEMICO")
+print("==========================================")
+
+tabla_programa = df.groupBy("programa_acad_mico").agg(
+    F.sum("matriculados_2015").alias("Total matriculas")
+).orderBy(
+    F.desc("Total matriculas")
+)
+
+tabla_programa.show(20, truncate=False)
+
+# ==================================================
+# TABLA 3. MATRICULAS POR ANIO Y PROGRAMA
+# ==================================================
+
+print("\n==========================================")
+print("TABLA 3: MATRICULAS POR ANIO Y PROGRAMA")
+print("==========================================")
+
+tabla_anio_programa = df.groupBy(
+    "a_o",
+    "programa_acad_mico"
+).agg(
+    F.sum("matriculados_2015").alias("Total matriculas")
+).orderBy(
+    "a_o",
+    F.desc("Total matriculas")
+)
+
+tabla_anio_programa.show(50, truncate=False)
+
+# ==================================================
+# 4. FINALIZAR LA SESION
+# ==================================================
+
+spark.stop()
